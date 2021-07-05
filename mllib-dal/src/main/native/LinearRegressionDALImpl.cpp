@@ -118,11 +118,7 @@ static NumericTablePtr ridge_regression_compute(
 
     using daal::byte;
 
-    NumericTablePtr ridgeParams(new HomogenNumericTable<double>(
-        1, 1, NumericTable::doAllocate, regParam));
-
     ridge_regression::training::Distributed<step1Local> localAlgorithm;
-    localAlgorithm.parameter.ridgeParameters = ridgeParams;
 
     /* Pass a training data set and dependent values to the algorithm */
     localAlgorithm.input.set(ridge_regression::training::data, pData);
@@ -159,6 +155,10 @@ static NumericTablePtr ridge_regression_compute(
         /* Create an algorithm object to build the final multiple ridge
          * regression model on the master node */
         ridge_regression::training::Distributed<step2Master> masterAlgorithm;
+
+        NumericTablePtr ridgeParams(new HomogenNumericTable<double>(
+        1, 1, NumericTable::doAllocate, regParam));
+        masterAlgorithm.parameter.ridgeParameters = ridgeParams;
 
         for (size_t i = 0; i < nBlocks; i++) {
             /* Deserialize partial results from step 1 */
@@ -224,9 +224,11 @@ Java_org_apache_spark_ml_regression_LinearRegressionDALImpl_cLinearRegressionTra
     NumericTablePtr resultTable;
 
     if (regParam == 0) {
+        cout << "oneDAL (native): Running Linear Regression" << endl;
         resultTable = linear_regression_compute(rankId, comm, pData, pLabel,
                                                 executor_num);
     } else {
+        cout << "oneDAL (native): Running Ridge Regression with ridgeParameter " << regParam << endl;
         resultTable = ridge_regression_compute(rankId, comm, pData, pLabel,
                                                regParam, executor_num);
     }
